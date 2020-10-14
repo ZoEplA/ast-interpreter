@@ -1,6 +1,6 @@
-//extern int GET();
-//extern void * MALLOC(int);
-//extern void FREE(void *);
+extern int GET();
+extern void * MALLOC(int);
+extern void FREE(void *);
 extern void PRINT(int);
 
 int main(int argc, char *argv[]) {
@@ -8,7 +8,7 @@ int main(int argc, char *argv[]) {
 	int d = 4;
 	int c = 5;
 	//BinaryOperator DeclRefExpr IntegerLiteral
-	//a = 1;
+	a = 1 + d;
 	d = 2;
 	c = 3;
 	PRINT(a);

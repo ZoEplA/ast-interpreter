@@ -41,7 +41,16 @@ public:
    virtual void VisitCallExpr(CallExpr * call) {
       llvm::errs() << "[+] visit CallExpr\n";
 	   VisitStmt(call);
-	   mEnv->call(call);
+      if(mEnv->call(call)) {
+         //init a new stackframe & push params
+         //
+         if (call->getDirectCallee()->getBody())
+            VisitStmt(call->getDirectCallee()->getBody());
+         //get return value & pop a stackframe
+         mEnv->callfinished(call);
+      }
+
+	   // mEnv->call(call);
    }
    virtual void VisitDeclStmt(DeclStmt * declstmt) {
       llvm::errs() << "[+] visit DeclStmt\n";

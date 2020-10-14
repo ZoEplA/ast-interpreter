@@ -124,6 +124,7 @@ public:
 
 	//CFG: 表示源级别的过程内CFG，它表示Stmt的控制流。
 	//DeclStmt-用于将声明与语句和表达式混合的适配器类
+	// 声明的变量，函数，枚举
    	void decl(DeclStmt * declstmt) {
 	   	for (DeclStmt::decl_iterator it = declstmt->decl_begin(), ie = declstmt->decl_end(); it != ie; ++ it) {
 			//in ast, the sub-node is usually VarDecl
