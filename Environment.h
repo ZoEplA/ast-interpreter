@@ -28,7 +28,10 @@ public:
    	}    
    	int getDeclVal(Decl * decl) {
       	assert (mVars.find(decl) != mVars.end());
-      	return mVars.find(decl)->second;
+		// llvm::errs() << "[*] getDeclVal first  : "<< mVars.find(decl)->first <<  " second : "<< mVars.find(decl)->second << "\n";
+      	// [*] getDeclVal first  : 0x55b2fdd04f48 second : 3
+		// 这里的first和second就是(vardecl, val)
+		return mVars.find(decl)->second;
    	}
    	void bindStmt(Stmt * stmt, int val) {
 	   	mExprs[stmt] = val;
@@ -101,11 +104,12 @@ public:
    	void binop(BinaryOperator *bop) {
 	   	Expr * left = bop->getLHS();
 	   	Expr * right = bop->getRHS();
-        // binOpcode Opc = bop->getOpcode();
+        BinaryOperatorKind Opcode = bop->getOpcode();
 		
 		llvm::errs() << "binop left : " << left->getStmtClassName() << "\n";	
 		llvm::errs() << "binop right : " << right->getStmtClassName() << "\n";
-
+		int lval = mStack.back().getStmtVal(left);
+        int rval = mStack.back().getStmtVal(right);
 		// assign op
 	   	if (bop->isAssignmentOp()) {
 		   	int rval = mStack.back().getStmtVal(right);
@@ -119,8 +123,63 @@ public:
 				//return the 
 			   	mStack.back().bindDecl(decl, rval);
 		   	}
-	   	}
-   	}
+	   	}else{
+			int val;
+			switch (Opcode)
+			{
+			case BO_Add: // + 
+				mStack.back().bindStmt(bop, lval + rval);
+				break;
+			case BO_Sub: // -
+				mStack.back().bindStmt(bop, lval - rval);
+				break;
+			case BO_Mul: // *
+				mStack.back().bindStmt(bop, lval * rval);
+				break;
+			case BO_Div: //  / ; check the b can not be 0
+				if (rval == 0){
+					llvm::errs() << "the BinaryOperator /, can not div 0 " << "\n";
+					exit(0);
+				}
+				mStack.back().bindStmt(bop, lval / rval);
+				break;
+			case BO_LT: // <
+				val = (lval < rval) ? 1:0;
+				mStack.back().bindStmt(bop, val);
+				break;
+			case BO_GT: // >
+				val = (lval > rval) ? 1:0;
+				mStack.back().bindStmt(bop, val);
+				break;
+			case BO_EQ: // ==
+				val = (lval == rval) ? 1:0;
+				mStack.back().bindStmt(bop, val);
+				break;
+			case BO_GE:  //>=
+				if( lval >= rval )
+					mStack.back().bindStmt(bop, 1);
+				else
+					mStack.back().bindStmt(bop, 0);
+				break;
+			case BO_LE:  //>=
+				if( lval <= rval )
+					mStack.back().bindStmt(bop, 1);
+				else
+					mStack.back().bindStmt(bop, 0);
+				break;
+			case BO_NE: // !=
+				if( lval != rval )
+					mStack.back().bindStmt(bop,1);
+				else
+					mStack.back().bindStmt(bop,0);
+				break;
+			default:
+				llvm::errs() << "process binaryOp error" << "\n";
+				exit(0);
+				break;
+			}
+		}
+	}
 
 	//CFG: 表示源级别的过程内CFG，它表示Stmt的控制流。
 	//DeclStmt-用于将声明与语句和表达式混合的适配器类

@@ -5,10 +5,10 @@ extern void PRINT(int);
 
 int main(int argc, char *argv[]) {
 	int a = 3;
-	int d = 4;
+	int d = 6;
 	int c = 5;
 	//BinaryOperator DeclRefExpr IntegerLiteral
-	a = 1 + d;
+	a = d != c;
 	d = 2;
 	c = 3;
 	PRINT(a);
