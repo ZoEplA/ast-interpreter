@@ -9,13 +9,14 @@ int e = b;
 int main(int argc, char *argv[]) {
 	int a = 3;
 	int d = 6;
-	int c = 5;
+	int c = a;
 	//BinaryOperator DeclRefExpr IntegerLiteral
-	a = c;
-	d = 2;
-	c = 3;
-	a = GET();
+	//a = c;
+	a = d;
+	//c = 3;
+	//a = GET();
 	PRINT(a);
+	PRINT(c);
 	//MALLOC(c);
 }
 

@@ -136,16 +136,17 @@ public:
 		   	// bind global vardecl to stack
             if (VarDecl * vdecl = dyn_cast<VarDecl>(*i)) {
                 llvm::errs() << "global var decl: " << vdecl << "\n";
-                int val = 0;
-
-				// bind global vardecl to stack
-                if (Expr * expr = vdecl->getInit()) {
-                    if (IntegerLiteral * iliteral = dyn_cast<IntegerLiteral>(expr)) {
-                        val = (int)iliteral->getValue().getLimitedValue();  
-                    }
-                }
-
-                mStack.back().bindDecl(vdecl, val);
+                if (vdecl->getType().getTypePtr()->isIntegerType() || vdecl->getType().getTypePtr()->isCharType() ||
+					vdecl->getType().getTypePtr()->isPointerType())
+				{
+					if (vdecl->hasInit())
+						mStack.back().bindDecl(vdecl, expr(vdecl->getInit()));
+					else
+						mStack.back().bindDecl(vdecl, 0);
+				}
+				else
+				{ // todo array
+				}
             } else if (FunctionDecl * fdecl = dyn_cast<FunctionDecl>(*i) ) { // extract functions defined by ourself
 			   	if (fdecl->getName().equals("FREE")) mFree = fdecl;
 			   	else if (fdecl->getName().equals("MALLOC")) mMalloc = fdecl;
@@ -170,8 +171,6 @@ public:
 		
 		llvm::errs() << "binop left : " << left->getStmtClassName() << "\n";	
 		llvm::errs() << "binop right : " << right->getStmtClassName() << "\n";
-		int lval = mStack.back().getStmtVal(left);
-        int rval = mStack.back().getStmtVal(right);
 		// assign op
 	   	if (bop->isAssignmentOp()) {
 		   	int rval = mStack.back().getStmtVal(right);
@@ -187,6 +186,8 @@ public:
 		   	}
 	   	}else{
 			int val;
+			int lval = mStack.back().getStmtVal(left);
+			int rval = mStack.back().getStmtVal(right);
 			switch (Opcode)
 			{
 			case BO_Add: // + 
@@ -255,10 +256,8 @@ public:
 		   	if (VarDecl * vardecl = dyn_cast<VarDecl>(decl)) {
 				llvm::errs() << "decl: " << (vardecl->getType()).getAsString() << "\n";
 				llvm::errs() << "global var decl: " << vardecl << "\n";
-				if (Expr * expr = vardecl->getInit()) {
-                    if (IntegerLiteral * iliteral = dyn_cast<IntegerLiteral>(expr)) {
-                        val = (int)iliteral->getValue().getLimitedValue();  
-                    }
+				if (Expr * expr_tmp = vardecl->getInit()) {
+					val = expr(expr_tmp);
                 }
 				mStack.back().bindDecl(vardecl, val);
 		   	}
@@ -271,11 +270,15 @@ public:
 	   	mStack.back().setPC(declref);
 	   	if (declref->getType()->isIntegerType()) {
 		   	Decl* decl = declref->getFoundDecl();
-
 		   	int val = mStack.back().getDeclVal(decl);
         	llvm::errs() << " declref's int: " << val << "\n";
 		   	mStack.back().bindStmt(declref, val);
-	   	}
+	   	}else if (declref->getType()->isPointerType()){
+			Decl *decl = declref->getFoundDecl();
+			int val = mStack.back().getDeclVal(decl);
+        	llvm::errs() << " declref's Pointer: " << val << "\n";
+			mStack.back().bindStmt(declref, val);
+		}
    	}
 
 	//类型转换的基类，包括隐式转换（ImplicitCastExpr）和在源代码中具有某种表示形式的显式转换（ExplicitCastExpr的派生类）
@@ -293,6 +296,22 @@ public:
         llvm::errs() << " intliteral:\n    " << val << "\n";
         mStack.back().bindStmt(dyn_cast<Expr>(intliteral), val);
     }
+
+	int64_t expr(Expr *exp)
+	{
+		exp = exp->IgnoreImpCasts();
+		if (auto decl = dyn_cast<DeclRefExpr>(exp))
+		{
+			declref(decl);
+			int64_t result = mStack.back().getStmtVal(decl);
+			return result;
+		}
+		else if (auto intLiteral = dyn_cast<IntegerLiteral>(exp))
+		{ //a = 12
+			llvm::APInt result = intLiteral->getValue();
+			return result.getLimitedValue(); // intliteral->getValue().getSExtValue()
+		}
+	}
 
    	/// !TODO Support Function Call
    	void call(CallExpr * callexpr) {
