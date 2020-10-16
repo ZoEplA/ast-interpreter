@@ -3,14 +3,18 @@ extern void * MALLOC(int);
 extern void FREE(void *);
 extern void PRINT(int);
 
+int b = 10;
+int e = b;
+
 int main(int argc, char *argv[]) {
 	int a = 3;
 	int d = 6;
 	int c = 5;
 	//BinaryOperator DeclRefExpr IntegerLiteral
-	a = d != c;
+	a = c;
 	d = 2;
 	c = 3;
+	a = GET();
 	PRINT(a);
 	//MALLOC(c);
 }

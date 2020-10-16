@@ -10,6 +10,7 @@
 #include "clang/Tooling/Tooling.h"
 
 using namespace clang;
+using namespace std;
 
 class StackFrame {
    	/// StackFrame maps Variable Declaration to Value
@@ -55,9 +56,62 @@ public:
    	int Malloc(int size) ;
    	void Free (int addr) ;
    	void Update(int addr, int val) ;
-   	int get(int addr);
+   	int Get(int addr);
 };
 */
+class Heap {
+   // The map of mBufs[address] = size
+   std::map<int64_t, int> mBufs;
+   // The map of mContents[address] = value
+   std::map<int64_t, int> mContents;
+public:
+	Heap() : mBufs(), mContents(){
+   }
+   //allocate a buffer with the size of size and return the start pointer of the buffer
+   int64_t Malloc(int size) {
+      	/// malloc the buffer
+	  	int64_t *p = (int64_t *)std::malloc(size);
+      	mBufs.insert(std::make_pair((int64_t)p, size));
+
+      	/// init the content to zero
+      	for (int i=0; i<size; i ++) {
+         	mContents.insert(std::make_pair((int64_t)(p+i), 0));
+      	}
+      	return (int64_t)p;
+   }
+   //Free the buffer, clear the content to zero.
+   void Free (int64_t addr) {
+		// check the address first.
+   		assert(mBufs.find(addr) != mBufs.end());
+		//get the buffer address
+      	int64_t *buf = (int64_t *)addr;
+	  	// get the buffer size
+      	int size = mBufs.find(addr)->second;
+	  	// delete the addr's iterator
+      	mBufs.erase(mBufs.find(addr));
+		
+		// delete the addr's iterator
+      	for (int i = 0; i < size; i++) {
+      		assert(mContents.find((int64_t)(buf+i)) != mContents.end());
+        	mContents.erase((int64_t)(buf+i));
+      	}
+        // Free the buffer
+      	std::free(buf);
+   }
+
+   //Update the value of address in the buffer
+   void Update(int64_t addr, int val) {
+      assert(mContents.find(addr) != mContents.end());
+      mContents[addr] = val;
+   }
+
+   //Get the value of address in the buffer
+   int Get(int64_t addr) {
+      assert(mContents.find(addr) != mContents.end());
+      return mContents.find(addr)->second;
+    }
+};
+
 
 class Environment {
    	std::vector<StackFrame> mStack;
@@ -76,15 +130,23 @@ public:
 
    	/// Initialize the Environment
    	void init(TranslationUnitDecl * unit) {
+		// put it in first ,otherwise th process global will segmentfault because no StackFrame.
+		mStack.push_back(StackFrame()); 
 	   	for (TranslationUnitDecl::decl_iterator i =unit->decls_begin(), e = unit->decls_end(); i != e; ++ i) {
 		   	// bind global vardecl to stack
-			// if (VarDecl * vdecl = dyn_cast<VarDecl>(*i)) {
-            //     llvm::errs() << "global var decl: " << vdecl << "\n";
-            //     int val = 0;
-			// }
+            if (VarDecl * vdecl = dyn_cast<VarDecl>(*i)) {
+                llvm::errs() << "global var decl: " << vdecl << "\n";
+                int val = 0;
 
-			// extract functions defined by ourself
-		   	if (FunctionDecl * fdecl = dyn_cast<FunctionDecl>(*i) ) {
+				// bind global vardecl to stack
+                if (Expr * expr = vdecl->getInit()) {
+                    if (IntegerLiteral * iliteral = dyn_cast<IntegerLiteral>(expr)) {
+                        val = (int)iliteral->getValue().getLimitedValue();  
+                    }
+                }
+
+                mStack.back().bindDecl(vdecl, val);
+            } else if (FunctionDecl * fdecl = dyn_cast<FunctionDecl>(*i) ) { // extract functions defined by ourself
 			   	if (fdecl->getName().equals("FREE")) mFree = fdecl;
 			   	else if (fdecl->getName().equals("MALLOC")) mMalloc = fdecl;
 			   	else if (fdecl->getName().equals("GET")) mInput = fdecl;
@@ -92,7 +154,7 @@ public:
 			   	else if (fdecl->getName().equals("main")) mEntry = fdecl;
 		   	}
 	   	}
-	   	mStack.push_back(StackFrame());
+		   
    	}
 
    	FunctionDecl * getEntry() {
@@ -241,13 +303,25 @@ public:
 		  	llvm::errs() << "Please Input an Integer Value : ";
 		  	scanf("%d", &val);
 
-		  	mStack.back().bindStmt(callexpr, val);
+			mStack.back().bindStmt(callexpr, val);
 	   	} else if (callee == mOutput) {
 		   	Expr * decl = callexpr->getArg(0);
 		   	val = mStack.back().getStmtVal(decl);
 		   	llvm::errs() << "callee : " << val << "\n";
-	   	} else {
-		   	/// You could add your code here for Function call Return
+		}else{ // other callee
+			/// You could add your code here for Function call Return
+			// vector<int64_t> args;
+			// for (auto i = callexpr->arg_begin(), e = callexpr->arg_end(); i != e; i++)
+			// {
+			// 	args.push_back(expr(*i));
+			// }
+			// mStack.push_back(StackFrame());
+			// int j = 0;
+			// for (auto i = callee->param_begin(), e = callee->param_end(); i != e; i++, j++)
+			// {
+			// 	mStack.back().bindDecl(*i, args[j]);
+			// }
+		   	
 	   	}
    	}
 };

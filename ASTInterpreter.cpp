@@ -23,21 +23,28 @@ public:
       mEnv->intliteral(intliteral);
    }
 
+   // process BinaryOperator,e.g. assignment, add and etc.
    virtual void VisitBinaryOperator (BinaryOperator * bop) {
       llvm::errs() << "[+] visit BinaryOperator\n";
 	   VisitStmt(bop);
 	   mEnv->binop(bop);
    }
+
+   // process DeclRefExpr, e.g. refered decl expr
    virtual void VisitDeclRefExpr(DeclRefExpr * expr) {
       llvm::errs() << "[+] visit DeclRefExpr\n";
 	   VisitStmt(expr);
 	   mEnv->declref(expr);
    }
+
+   // process CastExpr
    virtual void VisitCastExpr(CastExpr * expr) {
       llvm::errs() << "[+] visit CastExpr\n";
 	   VisitStmt(expr);
 	   mEnv->cast(expr);
    }
+
+   // process CallExpr,e.g. function call
    virtual void VisitCallExpr(CallExpr * call) {
       llvm::errs() << "[+] visit CallExpr\n";
 	   VisitStmt(call);
@@ -52,10 +59,19 @@ public:
 
 	   mEnv->call(call);
    }
+   // process DeclStmt,e.g. int a; int a=c+d; and etc.
    virtual void VisitDeclStmt(DeclStmt * declstmt) {
       llvm::errs() << "[+] visit DeclStmt\n";
 	   mEnv->decl(declstmt);
    }
+   
+   // // process ArraySubscriptExpr, e.g. int [2]
+   // virtual void VisitArraySubscriptExpr(ArraySubscriptExpr *arrayexpr)
+   // {
+   //  VisitStmt(arrayexpr);
+   //  mEnv->array(arrayexpr);
+   // }
+
 private:
    Environment * mEnv;
 };
