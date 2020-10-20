@@ -38,12 +38,12 @@ public:
 		return mVars.find(decl)->second;
    	}
    	void bindStmt(Stmt * stmt, int64_t val) {
-		llvm::errs() << "[*] bindStmt : " << stmt->getStmtClassName() << " " << stmt << " " << val << "\n";
+		llvm::errs() << "		[*] bindStmt : " << stmt->getStmtClassName() << " " << stmt << " " << val << "\n";
 	   	mExprs[stmt] = val;
    	}
    	int64_t getStmtVal(Stmt * stmt) {
-		llvm::errs() << "[*] getstmtval first  : "<< mExprs.find(stmt)->first <<  " second : "<< mExprs.find(stmt)->second << "\n";
-		llvm::errs() << "[*] getstmtval : " << stmt->getStmtClassName() << " " << stmt << "\n";
+		llvm::errs() << "		[*] getstmtval first  : "<< mExprs.find(stmt)->first <<  " second : "<< mExprs.find(stmt)->second << "\n";
+		llvm::errs() << "		[*] getstmtval : " << stmt->getStmtClassName() << " " << stmt << "\n";
 	   	assert (mExprs.find(stmt) != mExprs.end());
 	   	return mExprs[stmt];
    	}
@@ -156,7 +156,7 @@ public:
 	   	for (TranslationUnitDecl::decl_iterator i =unit->decls_begin(), e = unit->decls_end(); i != e; ++ i) {
 		   	// bind global vardecl to stack
             if (VarDecl * vdecl = dyn_cast<VarDecl>(*i)) {
-                llvm::errs() << "global var decl: " << vdecl << "\n";
+                // llvm::errs() << "global var decl: " << vdecl << "\n";
                 if (vdecl->getType().getTypePtr()->isIntegerType() || vdecl->getType().getTypePtr()->isCharType() ||
 					vdecl->getType().getTypePtr()->isPointerType())
 				{
@@ -167,6 +167,7 @@ public:
 				}
 				else
 				{ // todo array
+					cout<<"		couldn't find the type when init." <<endl;
 				}
             } else if (FunctionDecl * fdecl = dyn_cast<FunctionDecl>(*i) ) { // extract functions defined by ourself
 			   	if (fdecl->getName().equals("FREE")) mFree = fdecl;
@@ -206,11 +207,13 @@ public:
 	}
 
 	void mStack_pushStmtVal(CallExpr *call, int64_t retvalue){
+		cout << "		push_func_stack_stmt = " << call << endl;
 		mStack.back().pushStmtVal(call, retvalue);
 	}
 
 	void mStack_pop_back(){
 		mStack.pop_back();
+		setReturn(false, 0);
 	}
    	/// !TODO Support comparison operation
 	// 二进制运算符
@@ -219,17 +222,15 @@ public:
 	   	Expr * right = bop->getRHS();
         BinaryOperatorKind Opcode = bop->getOpcode();
 		
-		llvm::errs() << "binop left : " << left->getStmtClassName() << "\n";	
-		llvm::errs() << "binop right : " << right->getStmtClassName() << "\n";
+		llvm::errs() << "		binop left : " << left->getStmtClassName() << " " << left << "\n";	
+		llvm::errs() << "		binop right : " << right->getStmtClassName() << " " << right << "\n";
 		// assign op
 		//处理BinaryOperator节点下的Expr等其他节点,比如存在两个子节点为expr或者BinaryOperator；此时需要把这些节点做decl或者stmt的bind
-	   	if (bop->isAssignmentOp()) {
-		   	// int64_t rval = mStack.back().getStmtVal(right);
-		   	// mStack.back().bindStmt(left, rval);
+	   	if (bop->isAssignmentOp()) { //判断是赋值语句还是一个 +-*/的语句
 			//if left expr is a refered expr, bind the right value to it
 		   	if (DeclRefExpr * declexpr = dyn_cast<DeclRefExpr>(left)) {
-				llvm::errs() << "binop left : " << left->getStmtClassName() << "\n";
-				llvm::errs() << "binop left : "  << dyn_cast<DeclRefExpr>(left)->getFoundDecl()->getNameAsString() << "\n";
+				// llvm::errs() << "binop left : " << left->getStmtClassName() << "\n";
+				// llvm::errs() << "binop left : "  << dyn_cast<DeclRefExpr>(left)->getFoundDecl()->getNameAsString() << "\n";
 				//获取发生此引用的NamedDecl,绑定右节点的值到左节点
 				int64_t val = Expr_GetVal(right);
 				mStack.back().bindStmt(left, val);
@@ -237,10 +238,10 @@ public:
 			   	mStack.back().bindDecl(decl, val);
 		   	}else if (auto array = dyn_cast<ArraySubscriptExpr>(left))
 			{
-				cout << "handle array - ArraySubscriptExpr." << endl;
+				// cout << "handle array - ArraySubscriptExpr." << endl;
 				if (DeclRefExpr *declexpr = dyn_cast<DeclRefExpr>(array->getLHS()->IgnoreImpCasts()))
 				{
-					cout << "handle array - DeclRefExpr." << endl;
+					// cout << "handle array - DeclRefExpr." << endl;
 					Decl *decl = declexpr->getFoundDecl();
 					int64_t val = Expr_GetVal(right);
 					int index = Expr_GetVal(array->getRHS());
@@ -251,9 +252,9 @@ public:
 							// int64_t a[3];
 								int64_t tmp = mStack.back().getDeclVal(vardecl);
 								int64_t *p = (int64_t *)tmp;
-								cout << "[-] array tmp : " << tmp << endl;
-								cout << "[-] array index : " << index << endl;
-								cout << "[-] array val : " << val << endl;
+								// cout << "[-] array tmp : " << tmp << endl;
+								// cout << "[-] array index : " << index << endl;
+								// cout << "[-] array val : " << val << endl;
 								*(p + index) = val;
 							}else if (array->getElementType().getTypePtr()->isCharType()){ 
 							// char a[3];
@@ -281,31 +282,31 @@ public:
 		else{
 			// 不是所有stmt都能getStmtVal，我们这里选择expr函数来进行解析
 			int64_t result;
-			cout << "[*]Opcode =  " << Opcode << endl;
+			// cout << "[*]Opcode =  " << Opcode << endl;
 			switch (Opcode)
 			{
 			case BO_Add: // + 
-				cout << "[*] BO_Add = " <<BO_Add  << endl;
+				// cout << "[*] BO_Add = " <<BO_Add  << endl;
 				result = Expr_GetVal(left) + Expr_GetVal(right);
 				break;
 			case BO_Sub: // -
 				result = Expr_GetVal(left) - Expr_GetVal(right);
 				break;
 			case BO_Mul: // *
-				cout << "[*] BO_Mul = " <<BO_Mul  <<endl;
+				// cout << "[*] BO_Mul = " <<BO_Mul  <<endl;
 				result = Expr_GetVal(left) * Expr_GetVal(right);
 				break;
 			case BO_Div: //  / ; check the b can not be 0
 				if (Expr_GetVal(right) == 0){
-					llvm::errs() << "the BinaryOperator /, can not div 0 " << "\n";
+					llvm::errs() << "		the BinaryOperator /, can not div 0 " << "\n";
 					exit(0);
 				}
 				result = Expr_GetVal(left) / Expr_GetVal(right);
 				break;
 			case BO_LT: // < BO_LT = 10
-				cout << "[*] BO_LT = " <<BO_LT  <<endl;
+				// cout << "[*] BO_LT = " <<BO_LT  <<endl;
 				result = (Expr_GetVal(left) < Expr_GetVal(right)) ? 1:0;
-				cout << "[*] BO_LT bindstmt" << result  <<endl;
+				// cout << "[*] BO_LT bindstmt" << result  <<endl;
 				break;
 			case BO_GT: // >
 				result = (Expr_GetVal(left) > Expr_GetVal(right)) ? 1:0;
@@ -332,18 +333,18 @@ public:
 					result = 0;
 				break;
 			default:
-				llvm::errs() << "process binaryOp error" << "\n";
+				llvm::errs() << "		process binaryOp error" << "\n";
 				exit(0);
 				break;
 			}
 			if (mStack.back().exprExits(bop))
 			{
-				cout<< "binding by exprExits." << endl;
+				// cout<< "binding by exprExits." << endl;
 				mStack.back().bindStmt(bop, result);
 			}
 			else
 			{
-				cout<< "pushStmtVal by no exprExits." << endl;
+				// cout<< "pushStmtVal by no exprExits." << endl;
 				mStack.back().pushStmtVal(bop, result);
 			}
 		}
@@ -353,15 +354,15 @@ public:
 	//DeclStmt-用于将声明与语句和表达式混合的适配器类
 	// 声明的变量，函数，枚举
    	void decl(DeclStmt * declstmt) {
-		cout << "[*] decl !!!" << endl;
+		// cout << "[*] decl !!!" << endl;
 	   	for (DeclStmt::decl_iterator it = declstmt->decl_begin(), ie = declstmt->decl_end(); it != ie; ++ it) {
 			//in ast, the sub-node is usually VarDecl
 			Decl * decl = *it;
 			//VarDecl 表示变量声明或定义
 		   	if (VarDecl * vardecl = dyn_cast<VarDecl>(decl)) {
 				// global var
-				llvm::errs() << "decl: " << (vardecl->getType()).getAsString() << "\n";
-				llvm::errs() << "global var decl: " << vardecl << "\n";
+				// llvm::errs() << "decl: " << (vardecl->getType()).getAsString() << "\n";
+				// llvm::errs() << "global var decl: " << vardecl << "\n";
 				if (vardecl->getType().getTypePtr()->isIntegerType() || vardecl->getType().getTypePtr()->isPointerType() 
 					|| vardecl->getType().getTypePtr()->isCharType() )
 				{
@@ -382,7 +383,7 @@ public:
 							{
 								a[i] = 0x61;
 							}
-							cout<<"[-] array init = "<<a<<endl;
+							// cout<<"[-] array init = "<<a<<endl;
 							mStack.back().bindDecl(vardecl, (int64_t)a);
 						}else if (array->getElementType().getTypePtr()->isCharType()){
 						// char a[3];
@@ -408,22 +409,22 @@ public:
 
     // 对已声明的变量，函数，枚举等的引用
    	void declref(DeclRefExpr * declref) {
-		llvm::errs() << "declref : " << declref->getFoundDecl()->getNameAsString() << "\n";
+		// llvm::errs() << "declref : " << declref->getFoundDecl()->getNameAsString() << "\n";
 	   	mStack.back().setPC(declref);
 		if (declref->getType()->isCharType()){
 			Decl *decl = declref->getFoundDecl();
 			int64_t val = mStack.back().getDeclVal(decl);
-        	llvm::errs() << " declref's char: " << val << "\n";
+        	// llvm::errs() << " declref's char: " << val << "\n";
 			mStack.back().bindStmt(declref, val);
 		}else if (declref->getType()->isIntegerType()) {
 		   	Decl* decl = declref->getFoundDecl();
 		   	int64_t val = mStack.back().getDeclVal(decl);
-        	llvm::errs() << " declref's int: " << val << "\n";
+        	// llvm::errs() << " declref's int: " << val << "\n";
 		   	mStack.back().bindStmt(declref, val);
 	   	}else if (declref->getType()->isPointerType()){
 			Decl *decl = declref->getFoundDecl();
 			int64_t val = mStack.back().getDeclVal(decl);
-        	llvm::errs() << " declref's Pointer: " << val << "\n";
+        	// llvm::errs() << " declref's Pointer: " << val << "\n";
 			mStack.back().bindStmt(declref, val);
 	   	} 
    	}
@@ -472,6 +473,7 @@ public:
 
 	void returnstmt(ReturnStmt *returnStmt)
 	{
+		cout << "		get returnstmt !!!" << endl;
 		int64_t value = Expr_GetVal(returnStmt->getRetValue());
 		setReturn(true, value);
 	}
@@ -521,7 +523,7 @@ public:
 			//mStack.back().bindStmt(uop, mHeap.Get(val));
 			break;
 		default:
-			llvm::errs() << "process unaryOp error" << "\n";
+			llvm::errs() << "		process unaryOp error" << "\n";
 			exit(0);
 			break;
 		}
@@ -532,12 +534,14 @@ public:
 		//跳过可能围绕此表达式的所有隐式强制转换，直到达到固定点为止
 		exp = exp->IgnoreImpCasts();
 		if (auto decl = dyn_cast<DeclRefExpr>(exp)){//还没搞清楚的
-      		llvm::errs() << "[*] begin test decl\n";
+      		// llvm::errs() << "[*] begin test decl\n";
+			cout<<"		DeclRefExpr expr"<<endl;
 			declref(decl);
 			int64_t result = mStack.back().getStmtVal(decl);
 			return result;
 		}else if (auto intLiteral = dyn_cast<IntegerLiteral>(exp)){ 
 		//a = 12
+			cout<<"		IntegerLiteral expr"<<endl;
 			llvm::APInt result = intLiteral->getValue();
 			return result.getSExtValue(); // intliteral->getValue().getSExtValue()
 		}
@@ -549,11 +553,12 @@ public:
 		}
 		else if (auto charLiteral = dyn_cast<CharacterLiteral>(exp)){
 		// a = 'a'
-			llvm::errs() << "char :" << charLiteral->getValue() <<"\n";
+			// llvm::errs() << "char :" << charLiteral->getValue() <<"\n";
 			return charLiteral->getValue(); // Clang/AST/Expr.h/ line 1369
 		}
 		else if (auto binaryExpr = dyn_cast<BinaryOperator>(exp)){ 
 		//+ - * / < > ==
+			cout<<"		BinaryOperator expr"<<endl;
 			binop(binaryExpr); // 这个是为了在for语句的时候直接解析`a < 10`语句而不调用visit->binop
 			int64_t result = mStack.back().getStmtVal(binaryExpr);
 			return result;
@@ -563,9 +568,11 @@ public:
 			return Expr_GetVal(parenExpr->getSubExpr());
 		}
 		else if (auto callexpr = dyn_cast<CallExpr>(exp)){
+			cout<<"		callexpr expr"<<endl;
 			return mStack.back().getStmtVal(callexpr);
 		}
 		else if (auto array = dyn_cast<ArraySubscriptExpr>(exp)){ 
+			cout<<"		ArraySubscriptExpr expr"<<endl;
 		// a[12]
 			if (DeclRefExpr *declexpr = dyn_cast<DeclRefExpr>(array->getLHS()->IgnoreImpCasts()))
 			{
@@ -607,10 +614,11 @@ public:
 			}
 		}
 		else if (auto castexpr = dyn_cast<CStyleCastExpr>(exp)){ //还没搞清楚的
-      		llvm::errs() << "[*] begin test castexpr\n";
+			cout<<"		CStyleCastExpr expr"<<endl;
+      		// llvm::errs() << "[*] begin test castexpr\n";
 			return Expr_GetVal(castexpr->getSubExpr());
 		}
-		llvm::errs() << "have not handle this situation" << "\n";
+		llvm::errs() << "		have not handle this situation" << "\n";
 		return 0;
 	}
    	/// !TODO Support Function Call
@@ -619,7 +627,7 @@ public:
 	   	int64_t val = 0;
 	   	FunctionDecl * callee = callexpr->getDirectCallee();
 	   	if (callee == mInput) {
-		  	llvm::errs() << "Please Input an Integer Value : ";
+		  	llvm::errs() << "		Please Input an Integer Value : ";
 			cin >> val;
 
 			mStack.back().bindStmt(callexpr, val);
@@ -627,16 +635,8 @@ public:
 			// Todo: cout the char value.
 			Expr *decl = callexpr->getArg(0);
 			Expr *exp = decl->IgnoreImpCasts();
-			if (auto array = dyn_cast<ArraySubscriptExpr>(exp))
-			{
-				val = Expr_GetVal(decl);
-				std::cout << "output : " << val << endl;
-			}
-			else
-			{
-				val = Expr_GetVal(decl);
-				std::cout << "output : " << val << endl;
-			}
+			val = Expr_GetVal(decl);
+			std::cout << "		output : " << val << endl;
 		}else if (callee == mMalloc){
 			int64_t malloc_size = Expr_GetVal(callexpr->getArg(0));
 			int64_t *p = (int64_t *)std::malloc(malloc_size);
@@ -645,7 +645,7 @@ public:
 			int64_t *p = (int64_t *)Expr_GetVal(callexpr->getArg(0));
 			std::free(p);
 		}else{  // other callee
-			llvm::errs() << "other callee : ???\n";
+			cout<<"		other callee"<<endl;
 			StackFrame stack;
 			auto pit=callee->param_begin();
 			for(auto it=callexpr->arg_begin(), ie=callexpr->arg_end();it!=ie;++it,++pit)

@@ -1,20 +1,19 @@
 #include<stdio.h>
 
-int f(int x) {
-  int a[3];
-  int i=0;
-  for (; i<3; i = i+1) {
-    a[i] = x + i;
-  }
-  
-  if (x> 0) return a[1];
-  return a[2];
-}
+int  fibonacci(int b) {
+   int c;
+   if (b < 2)
+      return b;
+   c = fibonacci(b-1) + fibonacci(b-2);
+   return c;
+}  
+   
 int main() {
    int a;
    int b;
-   a = -10;
-   b = f(a);
-   printf(b);
-}
+   a = 5;
 
+   b = fibonacci(5);
+   PRINT(b);
+   return 0;
+}

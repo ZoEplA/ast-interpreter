@@ -37,9 +37,12 @@ public:
 
    // process DeclRefExpr, e.g. refered decl expr
    virtual void VisitDeclRefExpr(DeclRefExpr * expr) {
+      if(mEnv->haveReturn()){
+         return;
+      }  
       llvm::errs() << "[+] visit DeclRefExpr\n";
 	   VisitStmt(expr);
-      llvm::errs() << "[+] visitStmt VisitDeclRefExpr done\n";
+      // llvm::errs() << "[+] visitStmt VisitDeclRefExpr done\n";
 	   mEnv->declref(expr);
    }
 
@@ -53,6 +56,9 @@ public:
 
    // process CallExpr,e.g. function call
    virtual void VisitCallExpr(CallExpr * call) {
+      if(mEnv->haveReturn()){
+         return;
+      }  
       llvm::errs() << "[+] visit CallExpr\n";
 	   VisitStmt(call);
 	   mEnv->call(call);
@@ -61,10 +67,13 @@ public:
          if ((!callee->getName().equals("GET")) && (!callee->getName().equals("PRINT")) &&
             (!callee->getName().equals("MALLOC")) && (!callee->getName().equals("FREE"))){
                Stmt *body=callee->getBody();
+               cout<<"what???"<<endl;
                if(body && isa<CompoundStmt>(body) )
                {
                   //visit the function body
-                  VisitStmt(body);
+                  cout<<"aaaaawhat???"<<endl;
+                  Visit(body);
+                  cout<<"ready to bind ret value!!!"<<endl;
                   int64_t retvalue = mEnv->getReturn();
                   mEnv->mStack_pop_back();
                   mEnv->mStack_pushStmtVal(call, retvalue);
@@ -75,6 +84,9 @@ public:
    }
 
    virtual void VisitIfStmt(IfStmt *ifstmt) {
+      if(mEnv->haveReturn()){
+         return;
+      }  
       //get the condition expr and visit relevant node in ast
       Expr *expr=ifstmt->getCond();
       Visit(expr);
@@ -98,6 +110,9 @@ public:
    
    //process WhileStmt
    virtual void VisitWhileStmt(WhileStmt *whilestmt) {
+      if(mEnv->haveReturn()){
+         return;
+      }  
       //get the condition expr of WhileStmt in ast,and visit relevant node
       Expr *expr = whilestmt->getCond();
       Visit(expr);
@@ -149,31 +164,43 @@ public:
 
    // process DeclStmt,e.g. int a; int a=c+d; and etc.
    virtual void VisitDeclStmt(DeclStmt * declstmt) {
+      if(mEnv->haveReturn()){
+         return;
+      }  
       llvm::errs() << "[+] visit DeclStmt\n";
 	   mEnv->decl(declstmt);
    }
    //process UnaryOperator, e.g. -, * and etc.
-   virtual void VisitUnaryOperator (UnaryOperator * uop) {
-      llvm::errs() << "[+] visit VisitUnaryOperator\n";
-      VisitStmt(uop);
-      mEnv->unaryop(uop);
-   }
+   // virtual void VisitUnaryOperator (UnaryOperator * uop) {
+   //    if(mEnv->haveReturn()){
+   //       return;
+   //    }  
+   //    llvm::errs() << "[+] visit VisitUnaryOperator\n";
+   //    VisitStmt(uop);
+   //    mEnv->unaryop(uop);
+   // }
 
-   //process UnaryExprOrTypeTraitExpr, e.g. sizeof and etc.
-   virtual void VisitUnaryExprOrTypeTraitExpr(UnaryExprOrTypeTraitExpr *uop)
-   {
-      llvm::errs() << "[+] visit VisitUnaryExprOrTypeTraitExpr\n";
-      VisitStmt(uop);
-      mEnv->unarysizeof(uop);
-   }
+   // //process UnaryExprOrTypeTraitExpr, e.g. sizeof and etc.
+   // virtual void VisitUnaryExprOrTypeTraitExpr(UnaryExprOrTypeTraitExpr *uop)
+   // {
+   //    if(mEnv->haveReturn()){
+   //       return;
+   //    }  
+   //    llvm::errs() << "[+] visit VisitUnaryExprOrTypeTraitExpr\n";
+   //    VisitStmt(uop);
+   //    mEnv->unarysizeof(uop);
+   // }
    //process ArraySubscriptExpr, e.g. int [2]
-   virtual void VisitArraySubscriptExpr(ArraySubscriptExpr *arrayexpr)
-   {
-      llvm::errs() << "[+] visit VisitArraySubscriptExpr\n";
-      return ;
-      // VisitStmt(arrayexpr);
-      // mEnv->array(arrayexpr);
-   }
+   // virtual void VisitArraySubscriptExpr(ArraySubscriptExpr *arrayexpr)
+   // {
+   //    if(mEnv->haveReturn()){
+   //       return;
+   //    }  
+   //    llvm::errs() << "[+] visit VisitArraySubscriptExpr\n";
+   //    return ;
+   //    // VisitStmt(arrayexpr);
+   //    // mEnv->array(arrayexpr);
+   // }
 
 private:
    Environment * mEnv;
