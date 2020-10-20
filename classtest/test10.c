@@ -4,13 +4,12 @@ extern void FREE(void *);
 extern void PRINT(int);
 
 int main() {
-   int a;
-   int b = 10;
-   a = 10;
-   if (a == 10) {
-     b = 20;
-   } else {
-     b = 0;
+   int a = 0;
+   int b = 0;
+   while (a < 10) {
+      a = a + 1; 
+
+      if (a > 5) b = b + 1;
    }
-   PRINT(a*10);
+   PRINT(b);
 }

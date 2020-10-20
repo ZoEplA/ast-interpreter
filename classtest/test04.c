@@ -6,11 +6,11 @@ extern void PRINT(int);
 int main() {
    int a;
    int b = 10;
-   a = 10;
-   if (a == 10) {
-     b = 20;
+   a = -10;
+   if (a > 0 ) {
+     b = a;
    } else {
-     b = 0;
+     b = -a;
    }
-   PRINT(a*10);
+   PRINT(b);
 }

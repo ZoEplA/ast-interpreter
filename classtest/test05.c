@@ -5,12 +5,11 @@ extern void PRINT(int);
 
 int main() {
    int a;
-   int b = 10;
+   int b = 0;
    a = 10;
-   if (a == 10) {
-     b = 20;
-   } else {
-     b = 0;
+   while ( b < a) {
+     b = b + 1;
    }
-   PRINT(a*10);
+
+   PRINT(b);
 }

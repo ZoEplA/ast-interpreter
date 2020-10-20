@@ -18,15 +18,20 @@ public:
    : EvaluatedExprVisitor(context), mEnv(env) {}
    virtual ~InterpreterVisitor() {}
 
-   virtual void VisitIntegerLiteral(IntegerLiteral * intliteral) {
-      llvm::errs() << "[+] visit IntegerLiteral\n";
-      mEnv->intliteral(intliteral);
-   }
+   // virtual void VisitIntegerLiteral(IntegerLiteral * intliteral) {
+   //    llvm::errs() << "[+] visit IntegerLiteral\n";
+   //    mEnv->intliteral(intliteral);
+   // }
 
    // process BinaryOperator,e.g. assignment, add and etc.
    virtual void VisitBinaryOperator (BinaryOperator * bop) {
+      if(mEnv->haveReturn()){
+         return;
+      } 
       llvm::errs() << "[+] visit BinaryOperator\n";
-	   VisitStmt(bop);
+	   //VisitStmt : 分析表达式，分析该节点下所有子树节点，依次进行深度优先遍历的递归调用去获取函数的值，有些子节点比如说VisitIntegerLiteral下不会再有子树，则不需要visit
+      VisitStmt(bop);
+      llvm::errs() << "[+] visitStmt BinaryOperator done\n";
 	   mEnv->binop(bop);
    }
 
@@ -34,15 +39,17 @@ public:
    virtual void VisitDeclRefExpr(DeclRefExpr * expr) {
       llvm::errs() << "[+] visit DeclRefExpr\n";
 	   VisitStmt(expr);
+      llvm::errs() << "[+] visitStmt VisitDeclRefExpr done\n";
 	   mEnv->declref(expr);
    }
 
    // process CastExpr
-   virtual void VisitCastExpr(CastExpr * expr) {
-      llvm::errs() << "[+] visit CastExpr\n";
-	   VisitStmt(expr);
-	   mEnv->cast(expr);
-   }
+   // virtual void VisitCastExpr(CastExpr * expr) {
+   //    llvm::errs() << "[+] visit CastExpr\n";
+	//    VisitStmt(expr);
+   //    llvm::errs() << "[+] visitStmt VisitCastExpr done\n";
+	//    mEnv->cast(expr);
+   // }
 
    // process CallExpr,e.g. function call
    virtual void VisitCallExpr(CallExpr * call) {
@@ -118,12 +125,12 @@ public:
          return;
       }  
       if(Stmt *init = forstmt->getInit()){
-         VisitStmt(init);
+         Visit(init);
       }
-      for(; mEnv->expr(forstmt->getCond()); Visit(forstmt->getInc())){ //getCond 返回值是bool，而不是void，不能使用Visit，只能直接利用expr对该语句进行解析from ‘void’ to ‘bool’
+      for(; mEnv->Expr_GetVal(forstmt->getCond()); Visit(forstmt->getInc())){ //getCond 返回值是bool，而不是void，不能使用Visit，只能直接利用expr对该语句进行解析from ‘void’ to ‘bool’
          Stmt *body=forstmt->getBody();
          if(body && isa<CompoundStmt>(body)){
-            VisitStmt(forstmt->getBody());
+            Visit(forstmt->getBody());
          }
             
       }
@@ -147,6 +154,7 @@ public:
    }
    //process UnaryOperator, e.g. -, * and etc.
    virtual void VisitUnaryOperator (UnaryOperator * uop) {
+      llvm::errs() << "[+] visit VisitUnaryOperator\n";
       VisitStmt(uop);
       mEnv->unaryop(uop);
    }
@@ -154,22 +162,18 @@ public:
    //process UnaryExprOrTypeTraitExpr, e.g. sizeof and etc.
    virtual void VisitUnaryExprOrTypeTraitExpr(UnaryExprOrTypeTraitExpr *uop)
    {
+      llvm::errs() << "[+] visit VisitUnaryExprOrTypeTraitExpr\n";
       VisitStmt(uop);
       mEnv->unarysizeof(uop);
    }
    //process ArraySubscriptExpr, e.g. int [2]
    virtual void VisitArraySubscriptExpr(ArraySubscriptExpr *arrayexpr)
    {
-      VisitStmt(arrayexpr);
-      mEnv->array(arrayexpr);
+      llvm::errs() << "[+] visit VisitArraySubscriptExpr\n";
+      return ;
+      // VisitStmt(arrayexpr);
+      // mEnv->array(arrayexpr);
    }
-
-   // // process ArraySubscriptExpr, e.g. int [2]
-   // virtual void VisitArraySubscriptExpr(ArraySubscriptExpr *arrayexpr)
-   // {
-   //  VisitStmt(arrayexpr);
-   //  mEnv->array(arrayexpr);
-   // }
 
 private:
    Environment * mEnv;

@@ -12,5 +12,5 @@ int main() {
    } else {
      b = 0;
    }
-   PRINT(a*10);
+   PRINT(a*b);
 }

@@ -11,8 +11,10 @@ int f(int x,int y) {
     return 0;
 }
 int main() {
-   int a=2;
-   PRINT(f(b,a));
+    int a=2;
+	int b=3;
+    a = b+1;
+	PRINT(f(b,a));
 }
 
 

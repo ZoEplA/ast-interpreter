@@ -1,4 +1,7 @@
-#include<stdio.h>
+extern int GET();
+extern void * MALLOC(int);
+extern void FREE(void *);
+extern void PRINT(int);
 
 int f(int x) {
   int a[3];
@@ -15,6 +18,5 @@ int main() {
    int b;
    a = -10;
    b = f(a);
-   printf(b);
+   PRINT(b);
 }
-
