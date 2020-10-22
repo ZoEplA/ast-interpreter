@@ -1,5 +1,5 @@
 extern int GET();
-extern void * MALLOC(int);
+extern int * MALLOC(int);
 extern void FREE(void *);
 extern void PRINT(int);
 
@@ -7,8 +7,11 @@ int a = 10;
 int b = a;
 
 int main() {
-	if(a == 11)
-		PRINT(a);
-	else
-		PRINT(b);
+	int* p;
+	int* q;
+	int a;
+	*(p+1) = 10;
+	a = *(p+1);
+	PRINT(a);
+
 }

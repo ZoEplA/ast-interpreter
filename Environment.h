@@ -38,12 +38,12 @@ public:
 		return mVars.find(decl)->second;
    	}
    	void bindStmt(Stmt * stmt, int64_t val) {
-		llvm::errs() << "		[*] bindStmt : " << stmt->getStmtClassName() << " " << stmt << " " << val << "\n";
+		// llvm::errs() << "		[*] bindStmt : " << stmt->getStmtClassName() << " " << stmt << " " << val << "\n";
 	   	mExprs[stmt] = val;
    	}
    	int64_t getStmtVal(Stmt * stmt) {
-		llvm::errs() << "		[*] getstmtval first  : "<< mExprs.find(stmt)->first <<  " second : "<< mExprs.find(stmt)->second << "\n";
-		llvm::errs() << "		[*] getstmtval : " << stmt->getStmtClassName() << " " << stmt << "\n";
+		// llvm::errs() << "		[*] getstmtval first  : "<< mExprs.find(stmt)->first <<  " second : "<< mExprs.find(stmt)->second << "\n";
+		// llvm::errs() << "		[*] getstmtval : " << stmt->getStmtClassName() << " " << stmt << "\n";
 	   	assert (mExprs.find(stmt) != mExprs.end());
 	   	return mExprs[stmt];
    	}
@@ -59,10 +59,10 @@ public:
 		return mExprs.find(stmt) != mExprs.end();
 	}
 
-	void pushStmtVal(Stmt *stmt, int64_t value)
-	{
-		mExprs.insert(pair<Stmt *, int64_t>(stmt, value));
-	}
+	// void pushStmtVal(Stmt *stmt, int64_t value)
+	// {
+	// 	mExprs.insert(pair<Stmt *, int64_t>(stmt, value));
+	// }
 };
 
 /// Heap maps address to a value
@@ -206,9 +206,9 @@ public:
 		return 0;
 	}
 
-	void mStack_pushStmtVal(CallExpr *call, int64_t retvalue){
-		cout << "		push_func_stack_stmt = " << call << endl;
-		mStack.back().pushStmtVal(call, retvalue);
+	void mStack_bindStmt(CallExpr *call, int64_t retvalue){
+		// cout << "		push_func_stack_stmt = " << call << endl;
+		mStack.back().bindStmt(call, retvalue);
 	}
 
 	void mStack_pop_back(){
@@ -222,11 +222,10 @@ public:
 	   	Expr * right = bop->getRHS();
         BinaryOperatorKind Opcode = bop->getOpcode();
 		
-		llvm::errs() << "		binop left : " << left->getStmtClassName() << " " << left << "\n";	
-		llvm::errs() << "		binop right : " << right->getStmtClassName() << " " << right << "\n";
-		// assign op
-		//处理BinaryOperator节点下的Expr等其他节点,比如存在两个子节点为expr或者BinaryOperator；此时需要把这些节点做decl或者stmt的bind
-	   	if (bop->isAssignmentOp()) { //判断是赋值语句还是一个 +-*/的语句
+		// llvm::errs() << "		binop left : " << left->getStmtClassName() << " " << left << "\n";	
+		// llvm::errs() << "		binop right : " << right->getStmtClassName() << " " << right << "\n";
+		// isAssignmentOp : 判断是赋值语句还是一个 +-*/的语句
+	   	if (bop->isAssignmentOp()) { 
 			//if left expr is a refered expr, bind the right value to it
 		   	if (DeclRefExpr * declexpr = dyn_cast<DeclRefExpr>(left)) {
 				// llvm::errs() << "binop left : " << left->getStmtClassName() << "\n";
@@ -273,10 +272,13 @@ public:
 			}
 			else if (auto unaryExpr = dyn_cast<UnaryOperator>(left))
 			{ // *(p+1)
-				int64_t val = Expr_GetVal(right);
-				int64_t addr = Expr_GetVal(unaryExpr->getSubExpr());
-				int64_t *p = (int64_t *)addr;
-				*p = val;
+				if( (unaryExpr->getOpcode()) == UO_Deref)
+				{
+					int64_t val = Expr_GetVal(right);
+					int64_t addr = Expr_GetVal(unaryExpr->getSubExpr());
+					int64_t *p = (int64_t *)addr;
+					*p = val;
+				}
 			}
 	   	}
 		else{
@@ -337,16 +339,8 @@ public:
 				exit(0);
 				break;
 			}
-			if (mStack.back().exprExits(bop))
-			{
-				// cout<< "binding by exprExits." << endl;
-				mStack.back().bindStmt(bop, result);
-			}
-			else
-			{
-				// cout<< "pushStmtVal by no exprExits." << endl;
-				mStack.back().pushStmtVal(bop, result);
-			}
+
+			mStack.back().bindStmt(bop, result);
 		}
 	}
 
@@ -429,42 +423,6 @@ public:
 	   	} 
    	}
 
-	//类型转换的基类，包括隐式转换（ImplicitCastExpr）和在源代码中具有某种表示形式的显式转换（ExplicitCastExpr的派生类）
-	//问题应该出在cast没有判断数组类型并进行处理
-   	// void cast(CastExpr * castexpr) {
-	// 	cout<<"cast call." <<endl;
-	//    	mStack.back().setPC(castexpr);
-	//    	if (castexpr->getType()->isIntegerType()) {
-	// 	   	Expr * expr = castexpr->getSubExpr();
-	// 	   	int val = mStack.back().getStmtVal(expr);
-    //     	llvm::errs() << "------CastExpr expr val: " << val <<" getSubExpr expr: " << expr->getStmtClassName() << "\n";
-	// 	   	mStack.back().bindStmt(castexpr, val );
-	//    	}
-   	// }
-    // void intliteral(IntegerLiteral * intliteral) {
-	// 	cout << "intliteral" << endl;
-    //     int val = (int)intliteral->getValue().getSExtValue(); // intliteral->getValue().getSExtValue()
-    //     llvm::errs() << " intliteral:\n    " << val << "\n";
-    //     mStack.back().bindStmt(dyn_cast<Expr>(intliteral), val);
-    // }
-
-// 	//process ArraySubscriptExpr, e.g. int [n]
-//    	void array(ArraySubscriptExpr *arrayexpr)
-//    	{
-// 		cout << "ArraySubscriptExpr in env" << endl;
-//    		//get the base and the offset index of the array
-//    		Expr *leftexpr=arrayexpr->getLHS();
-//    		//cout<<leftexpr->getStmtClassName()<<endl;
-//    		int base=mStack.back().getStmtVal(leftexpr);
-//    		Expr *rightexpr=arrayexpr->getRHS();
-//    		//cout<<rightexpr->getStmtClassName()<<endl;
-//    		int offset=mStack.back().getStmtVal(rightexpr);
-//    		//cout<<valRight<<endl;
-
-//    		//by mHeap,we can get the value of addr in buf,we bind the value to ArraySubscriptExpr
-//    		mStack.back().bindStmt(arrayexpr,mHeap.Get(base + offset*sizeof(int)));
-//    }
-
 	//get the condition value of IfStmt and WhileStmt
    	bool getcond(/*BinaryOperator *bop*/Expr *expr)
    	{
@@ -473,7 +431,7 @@ public:
 
 	void returnstmt(ReturnStmt *returnStmt)
 	{
-		cout << "		get returnstmt !!!" << endl;
+		// cout << "		get returnstmt !!!" << endl;
 		int64_t value = Expr_GetVal(returnStmt->getRetValue());
 		setReturn(true, value);
 	}
@@ -509,16 +467,16 @@ public:
 		switch (op)
 		{
 		case UO_Minus: //'-'
-			mStack.back().pushStmtVal(unaryExpr, -1 * Expr_GetVal(exp));
+			mStack.back().bindStmt(unaryExpr, -1 * Expr_GetVal(exp));
 			break;
 		case UO_Plus: //'+'
-			mStack.back().pushStmtVal(unaryExpr, Expr_GetVal(exp));
+			mStack.back().bindStmt(unaryExpr, Expr_GetVal(exp));
 			break;
 		case UO_Deref: // '*'
-			mStack.back().pushStmtVal(unaryExpr, *(int64_t *)Expr_GetVal(unaryExpr->getSubExpr()));
+			mStack.back().bindStmt(unaryExpr, *(int64_t *)Expr_GetVal(unaryExpr->getSubExpr()));
 			break;
 		case UO_AddrOf: // '&',deref,bind the address of expr to UnaryOperator
-			mStack.back().pushStmtVal(unaryExpr,(int64_t)exp);
+			mStack.back().bindStmt(unaryExpr,(int64_t)exp);
 			llvm::errs() << long(exp) << "\n";
 			//mStack.back().bindStmt(uop, mHeap.Get(val));
 			break;
@@ -535,13 +493,13 @@ public:
 		exp = exp->IgnoreImpCasts();
 		if (auto decl = dyn_cast<DeclRefExpr>(exp)){//还没搞清楚的
       		// llvm::errs() << "[*] begin test decl\n";
-			cout<<"		DeclRefExpr expr"<<endl;
+			// cout<<"		DeclRefExpr expr"<<endl;
 			declref(decl);
 			int64_t result = mStack.back().getStmtVal(decl);
 			return result;
 		}else if (auto intLiteral = dyn_cast<IntegerLiteral>(exp)){ 
 		//a = 12
-			cout<<"		IntegerLiteral expr"<<endl;
+			// cout<<"		IntegerLiteral expr"<<endl;
 			llvm::APInt result = intLiteral->getValue();
 			return result.getSExtValue(); // intliteral->getValue().getSExtValue()
 		}
@@ -558,7 +516,7 @@ public:
 		}
 		else if (auto binaryExpr = dyn_cast<BinaryOperator>(exp)){ 
 		//+ - * / < > ==
-			cout<<"		BinaryOperator expr"<<endl;
+			// cout<<"		BinaryOperator expr"<<endl;
 			binop(binaryExpr); // 这个是为了在for语句的时候直接解析`a < 10`语句而不调用visit->binop
 			int64_t result = mStack.back().getStmtVal(binaryExpr);
 			return result;
@@ -568,11 +526,11 @@ public:
 			return Expr_GetVal(parenExpr->getSubExpr());
 		}
 		else if (auto callexpr = dyn_cast<CallExpr>(exp)){
-			cout<<"		callexpr expr"<<endl;
+			// cout<<"		callexpr expr"<<endl;
 			return mStack.back().getStmtVal(callexpr);
 		}
 		else if (auto array = dyn_cast<ArraySubscriptExpr>(exp)){ 
-			cout<<"		ArraySubscriptExpr expr"<<endl;
+			// cout<<"		ArraySubscriptExpr expr"<<endl;
 		// a[12]
 			if (DeclRefExpr *declexpr = dyn_cast<DeclRefExpr>(array->getLHS()->IgnoreImpCasts()))
 			{
@@ -614,7 +572,7 @@ public:
 			}
 		}
 		else if (auto castexpr = dyn_cast<CStyleCastExpr>(exp)){ //还没搞清楚的
-			cout<<"		CStyleCastExpr expr"<<endl;
+			// cout<<"		CStyleCastExpr expr"<<endl;
       		// llvm::errs() << "[*] begin test castexpr\n";
 			return Expr_GetVal(castexpr->getSubExpr());
 		}
@@ -636,7 +594,7 @@ public:
 			Expr *decl = callexpr->getArg(0);
 			Expr *exp = decl->IgnoreImpCasts();
 			val = Expr_GetVal(decl);
-			std::cout << "		output : " << val << endl;
+			std::cout << "	output : " << val << endl;
 		}else if (callee == mMalloc){
 			int64_t malloc_size = Expr_GetVal(callexpr->getArg(0));
 			int64_t *p = (int64_t *)std::malloc(malloc_size);
@@ -645,7 +603,7 @@ public:
 			int64_t *p = (int64_t *)Expr_GetVal(callexpr->getArg(0));
 			std::free(p);
 		}else{  // other callee
-			cout<<"		other callee"<<endl;
+			// cout<<"		other callee"<<endl;
 			StackFrame stack;
 			auto pit=callee->param_begin();
 			for(auto it=callexpr->arg_begin(), ie=callexpr->arg_end();it!=ie;++it,++pit)

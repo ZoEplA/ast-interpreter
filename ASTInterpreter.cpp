@@ -28,10 +28,10 @@ public:
       if(mEnv->haveReturn()){
          return;
       } 
-      llvm::errs() << "[+] visit BinaryOperator\n";
+      // llvm::errs() << "[+] visit BinaryOperator\n";
 	   //VisitStmt : 分析表达式，分析该节点下所有子树节点，依次进行深度优先遍历的递归调用去获取函数的值，有些子节点比如说VisitIntegerLiteral下不会再有子树，则不需要visit
       VisitStmt(bop);
-      llvm::errs() << "[+] visitStmt BinaryOperator done\n";
+      // llvm::errs() << "[+] visitStmt BinaryOperator done\n";
 	   mEnv->binop(bop);
    }
 
@@ -40,7 +40,7 @@ public:
       if(mEnv->haveReturn()){
          return;
       }  
-      llvm::errs() << "[+] visit DeclRefExpr\n";
+      // llvm::errs() << "[+] visit DeclRefExpr\n";
 	   VisitStmt(expr);
       // llvm::errs() << "[+] visitStmt VisitDeclRefExpr done\n";
 	   mEnv->declref(expr);
@@ -59,7 +59,7 @@ public:
       if(mEnv->haveReturn()){
          return;
       }  
-      llvm::errs() << "[+] visit CallExpr\n";
+      // llvm::errs() << "[+] visit CallExpr\n";
 	   VisitStmt(call);
 	   mEnv->call(call);
 
@@ -67,16 +67,13 @@ public:
          if ((!callee->getName().equals("GET")) && (!callee->getName().equals("PRINT")) &&
             (!callee->getName().equals("MALLOC")) && (!callee->getName().equals("FREE"))){
                Stmt *body=callee->getBody();
-               cout<<"what???"<<endl;
                if(body && isa<CompoundStmt>(body) )
                {
                   //visit the function body
-                  cout<<"aaaaawhat???"<<endl;
                   Visit(body);
-                  cout<<"ready to bind ret value!!!"<<endl;
                   int64_t retvalue = mEnv->getReturn();
                   mEnv->mStack_pop_back();
-                  mEnv->mStack_pushStmtVal(call, retvalue);
+                  mEnv->mStack_bindStmt(call, retvalue);
                }  
          }
       }
@@ -135,7 +132,7 @@ public:
    //process ForStmt
    //https://clang.llvm.org/doxygen/Stmt_8h_source.html#l2451
    virtual void VisitForStmt(ForStmt *forstmt){
-      llvm::errs() << "[+] visit VisitForStmt\n";
+      // llvm::errs() << "[+] visit VisitForStmt\n";
       if(mEnv->haveReturn()){
          return;
       }  
@@ -167,7 +164,7 @@ public:
       if(mEnv->haveReturn()){
          return;
       }  
-      llvm::errs() << "[+] visit DeclStmt\n";
+      // llvm::errs() << "[+] visit DeclStmt\n";
 	   mEnv->decl(declstmt);
    }
    //process UnaryOperator, e.g. -, * and etc.
@@ -190,13 +187,13 @@ public:
    //    VisitStmt(uop);
    //    mEnv->unarysizeof(uop);
    // }
-   //process ArraySubscriptExpr, e.g. int [2]
+   // process ArraySubscriptExpr, e.g. int [2]
    // virtual void VisitArraySubscriptExpr(ArraySubscriptExpr *arrayexpr)
    // {
    //    if(mEnv->haveReturn()){
    //       return;
    //    }  
-   //    llvm::errs() << "[+] visit VisitArraySubscriptExpr\n";
+   //    // llvm::errs() << "[+] visit VisitArraySubscriptExpr\n";
    //    return ;
    //    // VisitStmt(arrayexpr);
    //    // mEnv->array(arrayexpr);
