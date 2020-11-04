@@ -18,17 +18,28 @@ public:
    : EvaluatedExprVisitor(context), mEnv(env) {}
    virtual ~InterpreterVisitor() {}
 
-   // virtual void VisitIntegerLiteral(IntegerLiteral * intliteral) {
-   //    llvm::errs() << "[+] visit IntegerLiteral\n";
-   //    mEnv->intliteral(intliteral);
-   // }
+   virtual void VisitIntegerLiteral(IntegerLiteral * intliteral) {
+      if(mEnv->haveReturn()){
+         return;
+      } 
+      llvm::errs() << "[+] visit IntegerLiteral\n";
+      mEnv->intliteral(intliteral);
+   }
+   virtual void VisitCharacterLiteral(CharacterLiteral * Character ){
+      if(mEnv->haveReturn()){
+         return;
+      } 
+      llvm::errs() << "[+] visit CharacterLiteral\n";
+      mEnv->Character(Character);
+      
+      }
 
    // process BinaryOperator,e.g. assignment, add and etc.
    virtual void VisitBinaryOperator (BinaryOperator * bop) {
       if(mEnv->haveReturn()){
          return;
       } 
-      // llvm::errs() << "[+] visit BinaryOperator\n";
+      llvm::errs() << "[+] visit BinaryOperator\n";
 	   //VisitStmt : 分析表达式，分析该节点下所有子树节点，依次进行深度优先遍历的递归调用去获取函数的值，有些子节点比如说VisitIntegerLiteral下不会再有子树，则不需要visit
       VisitStmt(bop);
       // llvm::errs() << "[+] visitStmt BinaryOperator done\n";
@@ -40,7 +51,7 @@ public:
       if(mEnv->haveReturn()){
          return;
       }  
-      // llvm::errs() << "[+] visit DeclRefExpr\n";
+      llvm::errs() << "[+] visit DeclRefExpr\n";
 	   VisitStmt(expr);
       // llvm::errs() << "[+] visitStmt VisitDeclRefExpr done\n";
 	   mEnv->declref(expr);
@@ -59,7 +70,7 @@ public:
       if(mEnv->haveReturn()){
          return;
       }  
-      // llvm::errs() << "[+] visit CallExpr\n";
+      llvm::errs() << "[+] visit CallExpr\n";
 	   VisitStmt(call);
 	   mEnv->call(call);
 
@@ -83,7 +94,8 @@ public:
    virtual void VisitIfStmt(IfStmt *ifstmt) {
       if(mEnv->haveReturn()){
          return;
-      }  
+      }   
+      llvm::errs() << "[+] visit IfStmt\n";
       //get the condition expr and visit relevant node in ast
       Expr *expr=ifstmt->getCond();
       Visit(expr);
@@ -110,6 +122,7 @@ public:
       if(mEnv->haveReturn()){
          return;
       }  
+      llvm::errs() << "[+] visit WhileStmt\n";
       //get the condition expr of WhileStmt in ast,and visit relevant node
       Expr *expr = whilestmt->getCond();
       Visit(expr);
@@ -136,6 +149,7 @@ public:
       if(mEnv->haveReturn()){
          return;
       }  
+      llvm::errs() << "[+] visit forstmt\n";
       if(Stmt *init = forstmt->getInit()){
          Visit(init);
       }
@@ -155,6 +169,7 @@ public:
       if(mEnv->haveReturn()){
          return;
       }
+      llvm::errs() << "[+] visit ReturnStmt\n";
       Visit(returnStmt->getRetValue());
       mEnv->returnstmt(returnStmt);
    }
@@ -164,29 +179,55 @@ public:
       if(mEnv->haveReturn()){
          return;
       }  
-      // llvm::errs() << "[+] visit DeclStmt\n";
+      llvm::errs() << "[+] visit DeclStmt\n";
 	   mEnv->decl(declstmt);
    }
-   //process UnaryOperator, e.g. -, * and etc.
-   // virtual void VisitUnaryOperator (UnaryOperator * uop) {
-   //    if(mEnv->haveReturn()){
-   //       return;
-   //    }  
-   //    llvm::errs() << "[+] visit VisitUnaryOperator\n";
-   //    VisitStmt(uop);
-   //    mEnv->unaryop(uop);
-   // }
 
-   // //process UnaryExprOrTypeTraitExpr, e.g. sizeof and etc.
-   // virtual void VisitUnaryExprOrTypeTraitExpr(UnaryExprOrTypeTraitExpr *uop)
-   // {
-   //    if(mEnv->haveReturn()){
-   //       return;
-   //    }  
-   //    llvm::errs() << "[+] visit VisitUnaryExprOrTypeTraitExpr\n";
-   //    VisitStmt(uop);
-   //    mEnv->unarysizeof(uop);
-   // }
+   //process UnaryExprOrTypeTraitExpr, e.g. sizeof and etc.
+   virtual void VisitUnaryExprOrTypeTraitExpr(UnaryExprOrTypeTraitExpr *uop)
+   {
+      if(mEnv->haveReturn()){
+         return;
+      }  
+      llvm::errs() << "[+] visit VisitUnaryExprOrTypeTraitExpr\n";
+      VisitStmt(uop);
+      mEnv->unarysizeof(uop);
+   }
+
+   virtual void VisitParenExpr(ParenExpr * pexpr) {
+      if(mEnv->haveReturn()){
+         return;
+      }
+      llvm::errs() << "[+] visit VisitParenExpr\n";            
+      VisitStmt(pexpr);             
+      mEnv->parenexpr(pexpr);     
+   }
+
+   //process UnaryOperator, e.g. -, * and etc.
+   virtual void VisitUnaryOperator (UnaryOperator * uop) {
+      if(mEnv->haveReturn()){
+         return;
+      }  
+      llvm::errs() << "[+] visit VisitUnaryOperator\n";
+      VisitStmt(uop);
+      mEnv->unaryop(uop);
+   }
+   
+   virtual void VisitCastExpr(CastExpr * expr) {
+      if(mEnv->haveReturn()){
+         return;
+      }  
+      llvm::errs() << "[+] visit VisitCastExpr\n";
+	   VisitStmt(expr);
+	   mEnv->cast(expr);
+   }
+
+   virtual void VisitArraySubscriptExpr(ArraySubscriptExpr *ase) {
+	   VisitStmt(ase);
+	   mEnv->arrayexpr(ase);
+   }
+
+   
    // process ArraySubscriptExpr, e.g. int [2]
    // virtual void VisitArraySubscriptExpr(ArraySubscriptExpr *arrayexpr)
    // {
